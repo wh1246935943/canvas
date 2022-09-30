@@ -1,0 +1,201 @@
+<html>
+  <head>
+    <title>贪吃蛇</title>
+  </head>
+
+  <body>
+    <canvas id="canvas" width="400" height="400"></canvas>
+  </body>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const canvasContext = canvas.getContext("2d");
+
+    window.onload = () => {
+      gameLoop();
+    };
+
+    function gameLoop() {
+      setInterval(show, 1000 / 5); // 这里模拟fps，调整分母可以修改移动的速度
+    }
+
+    function show() {
+      update();
+      draw();
+    }
+
+    function update() {
+      canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+      snake.move();
+      eatFrog();
+    }
+
+    function eatFrog() {
+      if (
+        snake.tail[snake.tail.length - 1].x === frog.x &&
+        snake.tail[snake.tail.length - 1].y === frog.y
+      ) {
+        snake.tail[snake.tail.length] = { x: frog.x, y: frog.y };
+        frog = new Frog();
+      }
+    }
+
+    /**
+     * 绘制由小方块组成的蛇身
+     */
+    function draw() {
+      createRect(0, 0, canvas.width, canvas.height, "black");
+      createRect(0, 0, canvas.width, canvas.height);
+      /**
+       * 蛇的长度取决于当前的方块数量
+       * 这个方块数量也就是顶部的得分数量
+       */
+      for (let i = 0; i < snake.tail.length; i++) {
+        createRect(
+          snake.tail[i].x + 2.5,
+          snake.tail[i].y + 2.5,
+          snake.size - 5,
+          snake.size - 5,
+          "white"
+        );
+      }
+      /**
+       * 重新创建蛇后
+       * 更新顶部的得分文本
+       */
+      canvasContext.font = "20px Arial";
+      canvasContext.fillStyle = "#00FF42";
+      canvasContext.fillText(
+        "得分: " + (snake.tail.length - 1),
+        canvas.width - 120,
+        18
+      );
+      /**
+       * 当目标方块的随机位置更新后，以此重新回值目标方块
+       */
+      createRect(frog.x, frog.y, frog.size, frog.size, frog.color);
+    }
+
+    /**
+     * 创建小方块
+     * @param x: 方块所在的位置横坐标，以右上角为坐标原点
+     * @param y: 方块所在的位置纵坐标，以右上角为坐标原点
+     * @param width: 方块宽度
+     * @param height: 方块高度
+     * @param color: 方块填充色
+     */
+    function createRect(x, y, width, height, color) {
+      canvasContext.fillStyle = color;
+      canvasContext.fillRect(x, y, width, height);
+    }
+
+    /**
+     * 添加键盘事件
+     * 通过rotateX 、 rotateY来判断当前蛇身的移动方向，
+     * 避免在键盘重复按下导致蛇身发生位移
+     */
+    window.addEventListener("keydown", (event) => {
+      setTimeout(() => {
+        if (['KeyA', 'ArrowLeft'].includes(event.code) && snake.rotateX != 1) {
+          snake.rotateX = -1;
+          snake.rotateY = 0;
+        } else if (['KeyW', 'ArrowUp'].includes(event.code) && snake.rotateY != 1) {
+          snake.rotateX = 0;
+          snake.rotateY = -1;
+        } else if (['KeyD', 'ArrowRight'].includes(event.code) && snake.rotateX != -1) {
+          snake.rotateX = 1;
+          snake.rotateY = 0;
+        } else if (['KeyS', 'ArrowDown'].includes(event.code) && snake.rotateY != -1) {
+          snake.rotateX = 0;
+          snake.rotateY = 1;
+        }
+      }, 1);
+    });
+
+    class Snake {
+      constructor(x, y, size) {
+        this.x = x;
+        this.y = y;
+        this.size = size;
+        this.tail = [{ x: this.x, y: this.y }];
+        /**
+         * 沿x: 水平方向移动
+         * 沿y: 垂直方向移动
+         */
+        this.rotateX = 0;
+        this.rotateY = 1;
+      }
+
+      /**
+       * 更新当前用于创建蛇身的方块数据
+       * 通过rotateX 和 rotateY来决定新添加的方块处于蛇尾的坐标位置
+       */
+      move() {
+        let newRect;
+
+        if (this.rotateX === 1) {
+          newRect = {
+            x: this.tail[this.tail.length - 1].x + this.size,
+            y: this.tail[this.tail.length - 1].y,
+          };
+        } else if (this.rotateX === -1) {
+          newRect = {
+            x: this.tail[this.tail.length - 1].x - this.size,
+            y: this.tail[this.tail.length - 1].y,
+          };
+        } else if (this.rotateY === 1) {
+          newRect = {
+            x: this.tail[this.tail.length - 1].x,
+            y: this.tail[this.tail.length - 1].y + this.size,
+          };
+        } else if (this.rotateY === -1) {
+          newRect = {
+            x: this.tail[this.tail.length - 1].x,
+            y: this.tail[this.tail.length - 1].y - this.size,
+          };
+        }
+
+        this.tail.shift();
+        this.tail.push(newRect);
+      }
+    }
+
+    class Frog {
+      constructor() {
+        let isTouching; // 是否与蛇接触
+
+        /**
+         * 当于蛇接触则重新生成横纵坐标的随机数
+         */
+        while (true) {
+          isTouching = false;
+          this.x =
+            Math.floor((Math.random() * canvas.width) / snake.size) *
+            snake.size;
+          this.y =
+            Math.floor((Math.random() * canvas.height) / snake.size) *
+            snake.size;
+          /**
+           * 这里遍历当前蛇身的每一个方块的位置是否与重新生成的目标方块相同
+           * 如果相同则更改当前接触的状态，用于在调用eatFrog，时重新计算并回值当前目标方方块
+           */
+          for (let i = 0; i < snake.tail.length; i++) {
+            if (this.x === snake.tail[i].x && this.y == snake.tail[i].y) {
+              isTouching = true;
+            }
+          }
+
+          this.size = snake.size;
+          this.color = "red";
+
+          if (!isTouching) {
+            break;
+          }
+        }
+      }
+    }
+
+    const snake = new Snake(20, 20, 20);
+    let frog = new Frog();
+  </script>
+</html>
