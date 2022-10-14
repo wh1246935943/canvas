@@ -131,12 +131,15 @@ class DrawingBoard {
      */
     const reDraw = (i) => {
       this.draw(allCoord[i]);
+      
+      clearTimeout(this.timerId);
       /**
        * 如果coord不存在说明已经超出数组范围了，则可以停止继续绘制了
        */
       const coord = allCoord[i + 1];
       if (!coord) {
-        this.isPlay = false
+        this.isPlay = false;
+        return
       };
       /**
        * 当coord为reBeginPath时说明已经绘制到了新的一笔
