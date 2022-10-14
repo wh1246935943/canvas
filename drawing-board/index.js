@@ -20,6 +20,7 @@ class DrawingBoard {
     this.coords = [];
     this.timerId = null;
     this.isDrag = false;
+    this.isPlay = false;
 
     /** @type {HTMLCanvasElement} */
     this.canvas = document.querySelector(param.selecter);
@@ -65,6 +66,7 @@ class DrawingBoard {
   };
 
   onmouseDown() {
+    if (this.isPlay) return;
     this.isDrag = true;
     this.ctx.beginPath();
   };
@@ -121,6 +123,9 @@ class DrawingBoard {
     this.ctx.beginPath();
     
     const allCoord = this.collectAllCoords();
+
+    this.isPlay = true;
+
     /**
      * 通过递归是便于控制播放的速度
      */
@@ -130,7 +135,9 @@ class DrawingBoard {
        * 如果coord不存在说明已经超出数组范围了，则可以停止继续绘制了
        */
       const coord = allCoord[i + 1];
-      if (!coord) return;
+      if (!coord) {
+        this.isPlay = false
+      };
       /**
        * 当coord为reBeginPath时说明已经绘制到了新的一笔
        */
