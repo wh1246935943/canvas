@@ -5,7 +5,7 @@ class DrawingBoard {
     this.height = param?.height ?? 300;
     this.color = param?.color ?? 'red';
     this.size = param?.size ?? 2;
-    this.speed = param?.speed ?? 20;
+    this.speed = param?.speed ?? 10;
     this.isOutStop = param?.isOutStop ?? true;
 
     /**
@@ -56,7 +56,9 @@ class DrawingBoard {
     }
     
   };
-
+  /**
+   * 绘制线条
+   */
   draw([x, y] = []) {
     this.ctx.lineTo(x, y)
     this.ctx.stroke();
@@ -115,7 +117,7 @@ class DrawingBoard {
     
     // 判断当前是否有绘制记录
     if (!this.drawRecord?.length) return;
-    
+
     this.ctx.beginPath();
     
     const allCoord = this.collectAllCoords();
@@ -124,10 +126,14 @@ class DrawingBoard {
      */
     const reDraw = (i) => {
       this.draw(allCoord[i]);
-
+      /**
+       * 如果coord不存在说明已经超出数组范围了，则可以停止继续绘制了
+       */
       const coord = allCoord[i + 1];
       if (!coord) return;
-
+      /**
+       * 当coord为reBeginPath时说明已经绘制到了新的一笔
+       */
       if (coord === 'reBeginPath') {
         this.ctx.beginPath();
       };
@@ -167,6 +173,42 @@ class DrawingBoard {
   revoke() {
     this.drawRecord.pop();
     this.playback(0)
+  };
+
+  /**
+   * 利用requestAnimationFrame实现setTimeout功能
+   */
+  _setTimeout(callback, delay) {
+
+    let start = 0, timeStamp = new Date().getTime();
+
+    const implement = (t) => {
+
+      if (start === 0) {
+        start = t
+      };
+
+      if (t >= (delay + start)) {
+        window.cancelAnimationFrame(window[timeStamp]);
+        delete window[timeStamp];
+        callback();
+        return
+      };
+
+      window.cancelAnimationFrame(window[timeStamp]);
+      delete window[timeStamp];
+
+      window[timeStamp] = window.requestAnimationFrame(implement);
+    };
+
+    window[timeStamp] = window.requestAnimationFrame(implement);
+
+    return timeStamp
+  };
+
+  _clearTimeout(id) {
+    window.cancelAnimationFrame(window[id]);
+    delete window[id]
   }
 };
 
