@@ -5,15 +5,20 @@ class DrawingBoard {
     this.height = param?.height ?? 300;
     this.color = param?.color ?? 'red';
     this.size = param?.size ?? 2;
+    this.speed = param?.speed ?? 20;
     this.isOutStop = param?.isOutStop ?? true;
 
     /**
-     * 记录播放时的定时器id
-     * 记录鼠标按下划过的路径的每一个像素的坐标
-     * 设置开始绘画的开关
+     * drawRecord: 绘制历史列表中，即每一笔的记录集合
+     *             这是一个二维数组，里面的每一条数据都是一次起笔到抬起的路径集合，
+     *             二级数组中的数据为这一笔划过的路径的坐标信息
+     * coords: 每一笔划过路径的坐标信息
+     * timerId: 存放定时器ID，用于随时取消回放
+     * isDrag: 设置开始绘画的开关
      */
-    this.timerId = null;
+    this.drawRecord = [];
     this.coords = [];
+    this.timerId = null;
     this.isDrag = false;
 
     /** @type {HTMLCanvasElement} */
@@ -33,7 +38,6 @@ class DrawingBoard {
     const {canvas, ctx, color, isOutStop, size} = this;
 
     ctx.lineWidth = size;
-    // 画笔拐角的连接模式,round为圆角
     ctx.lineJoin = 'round';
     ctx.strokeStyle = color;
     ctx.shadowColor = color;
@@ -44,7 +48,10 @@ class DrawingBoard {
     
     canvas.onmouseup = this.onmouseUp.bind(this);
 
-    if (isOutStop) {
+    /**
+     * 超出后停止绘画的前提是鼠标必须处于按下的状态
+     */
+    if (isOutStop && this.isDrag) {
       canvas.onmouseout = this.onmouseUp.bind(this)
     }
     
@@ -57,40 +64,39 @@ class DrawingBoard {
 
   onmouseDown() {
     this.isDrag = true;
-    // 画笔重新起笔
     this.ctx.beginPath();
   };
 
   onmouseMove(e) {
-    const { isDrag, coords } = this;
-
-    if (isDrag) {
+    if (this.isDrag) {
       const x = e.offsetX;
       const y = e.offsetY;
+
       this.draw([x, y])
       /**
-       * 记录每一个点的坐标
-       * 用于点击播放按钮时重新绘制曲线
+       * 将当前画笔的路径坐标暂存起来，
+       * 在鼠标抬起后将这一条绘制记录放入绘制历史列表中
        */
-      coords.push([x, y])
+      this.coords.push([x, y])
     } 
   };
 
   onmouseUp() {
     this.isDrag = false;
     /**
-     * 这里向数组中添加reBeginPath为了在后面回放时分割重新起笔
-     * 否则所有记录在数组中的点都将被连接为一条线
+     * 将当前绘画的这一笔存入到绘制历史记录中,
+     * 并清空画笔坐标记录列表，避免下次重复记录到下一笔中
      */
-    this.coords.push('reBeginPath')
+    this.drawRecord.push([...this.coords]);
+    this.coords = []
   };
 
   /**
    * 清空画布
    */
-  clear(resetCoords = true) {
-    if (resetCoords) {
-      this.coords = [];
+  clear(resetDrawRecord = true) {
+    if (resetDrawRecord) {
+      this.drawRecord = []
     };
     // 清除定时器，避免在点击清空是正在回放的绘制未结束，导致不能正常清空内容
     clearTimeout(this.timerId)
@@ -100,35 +106,67 @@ class DrawingBoard {
 
   /**
    * 播放绘制路径
+   * @param { number } speed - 播放速度
+   * 如果传入的speed为0，应当直接同步绘制，不需要定时器
    */
-  playback() {
-    const { coords, ctx } = this;
-
-    // 判断当前是否有绘制记录
-    if (!coords?.length) return;
-    // 播放前清空画布
+  playback(speed = this.speed) {
+    // 播放前清空画布，但不清空记录
     this.clear(false);
     
-    ctx.beginPath();
+    // 判断当前是否有绘制记录
+    if (!this.drawRecord?.length) return;
+    
+    this.ctx.beginPath();
+    
+    const allCoord = this.collectAllCoords();
     /**
      * 通过递归是便于控制播放的速度
      */
     const reDraw = (i) => {
-      this.draw(coords[i]);
+      this.draw(allCoord[i]);
 
-      const coord = coords[i + 1];
+      const coord = allCoord[i + 1];
       if (!coord) return;
 
       if (coord === 'reBeginPath') {
-        ctx.beginPath();
+        this.ctx.beginPath();
+      };
+
+      if (speed === 0) {
+        reDraw(i + 1);
+        return
       };
 
       this.timerId = setTimeout(() => {
         reDraw(i + 1)
-      }, 5)
+      }, speed)
     }
 
     reDraw(0)
+  };
+
+  /**
+   * 将画笔历史记录中每一笔的路径坐标按顺序放在一个数组中
+   * 在每一此记录被放入时在前面添加一个重新起笔的标识reBeginPath
+   * 播放书写过程中，如果不设置重新起笔
+   * 所有的笔画都将被连接起来
+   */
+  collectAllCoords() {
+    const allCoord = [];
+
+    this.drawRecord.forEach((coords) => {
+      allCoord.push('reBeginPath');
+      allCoord.push(...coords);
+    });
+
+    return allCoord
+  };
+  /**
+   * 返回上一笔
+   */
+  revoke() {
+    this.drawRecord.pop();
+    this.playback(0)
   }
 };
 

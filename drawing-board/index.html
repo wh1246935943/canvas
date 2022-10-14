@@ -14,7 +14,7 @@
 <body>
   <div>
     <button class="clear">清空</button>
-    <!-- <button class="revoke">上一笔</button> -->
+    <button class="revoke">上一笔</button>
     <button class="playback">播放</button>
   </div>
   <canvas id="canvas"></canvas>
@@ -37,8 +37,8 @@ document.querySelector('.playback').onclick = () => {
   board.playback()
 };
 
-// document.querySelector('.revoke').onclick = () => {
-//   board.revoke()
-// };
+document.querySelector('.revoke').onclick = () => {
+  board.revoke()
+};
 </script>
 </html>
