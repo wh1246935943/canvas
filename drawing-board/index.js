@@ -1,4 +1,4 @@
-class PlaybackBoard {
+class DrawingBoard {
 
   constructor(param = {}) {
     this.width = param?.width ?? 400;
