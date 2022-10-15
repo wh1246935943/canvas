@@ -36,7 +36,7 @@ class DrawingBoard {
    * 为画布添加鼠标交互监听事件
    */
   init() {
-    const {canvas, ctx, color, isOutStop, size} = this;
+    const {canvas, ctx, color, size} = this;
 
     ctx.lineWidth = size;
     ctx.lineJoin = 'round';
@@ -49,13 +49,7 @@ class DrawingBoard {
     
     canvas.onmouseup = this.onmouseUp.bind(this);
 
-    /**
-     * 超出后停止绘画的前提是鼠标必须处于按下的状态
-     */
-    if (isOutStop && this.isDrag) {
-      canvas.onmouseout = this.onmouseUp.bind(this)
-    }
-    
+    canvas.onmouseout = this.onmouseout.bind(this)
   };
   /**
    * 绘制线条
@@ -94,7 +88,15 @@ class DrawingBoard {
     this.drawRecord.push([...this.coords]);
     this.coords = []
   };
-
+  /**
+   * 鼠标在绘制过程中超出画布是否要停止绘画
+   * 超出后停止绘画的前提是鼠标必须处于按下的状态
+   */
+  onmouseout() {
+    if (this.isOutStop && this.isDrag) {
+      this.onmouseUp()
+    }
+  };
   /**
    * 清空画布
    */
