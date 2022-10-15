@@ -184,7 +184,22 @@ class DrawingBoard {
     this.drawRecord.pop();
     this.playback(0)
   };
+  /**
+   * 保存图片
+   */
+  saveImg() {
+    if (this.drawRecord.length === 0) return;
 
+    const a = document.createElement('a');
+    a.download = 'user_name';
+    a.style.display = 'none';
+
+    a.href = this.canvas.toDataURL();
+    document.body.appendChild(a);
+
+    a.click();
+    document.body.removeChild(a);
+  };
   /**
    * 利用requestAnimationFrame实现setTimeout功能
    */

@@ -16,6 +16,7 @@
     <button class="clear">清空</button>
     <button class="revoke">上一笔</button>
     <button class="playback">播放</button>
+    <button class="saveimg">保存</button>
   </div>
   <canvas id="canvas"></canvas>
 </body>
@@ -39,6 +40,10 @@ document.querySelector('.playback').onclick = () => {
 
 document.querySelector('.revoke').onclick = () => {
   board.revoke()
+};
+
+document.querySelector('.saveimg').onclick = () => {
+  board.saveImg()
 };
 </script>
 </html>
