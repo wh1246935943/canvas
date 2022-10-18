@@ -7,7 +7,7 @@
   <title>Document</title>
 </head>
 <body style="margin: 0;">
-  <canvas id="canvas" style="background: black"></canvas>
+  <canvas id="canvas"></canvas>
 </body>
 
 <script>
@@ -20,21 +20,107 @@ const {clientWidth: width, clientHeight: height} = document.documentElement;
 
 canvas.setAttribute('width', width);
 canvas.setAttribute('height', height);
-
-ctx.fillStyle = '#ffffff';
+canvas.style.background = '#000000'
 
 const snows = Array.from({length: 400}, () => {
   return {
     x: Math.random() * width,
     y: Math.random() * height,
-    speed: Math.random() * 2.5 +0.5
+    speed: Math.random() * 2.5
   }
-})
+});
+
+const colors = [];
+
+function drawText(text, fontSize = 100, stepV = 40) {
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, width, height);
+  ctx.font = `bold ${fontSize}px 微软雅黑`;
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, width / 2, height / 2);
+
+  const data = ctx.getImageData(0, 0, width, height).data;
+
+  let index = 0;
+  let bl = 4;
+  let useIndex = 0;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const x = index % width;
+    const y = Math.ceil(index / width);
+
+    if (x % bl === 0 && y % bl === 0 && data[i] === 255 && data[i+1] === 255 && data[i+2] === 255) {
+      const rx = Math.floor(Math.random() * fontSize + width / 2 - fontSize / 2);
+      const ry = Math.floor(Math.random() * fontSize + height / 2 - fontSize / 2);
+
+      const item = colors[useIndex];
+
+      if (item) {
+        colors[useIndex] = {
+          x,
+          y,
+          rx: item.x,
+          ry: item.y,
+          stepX: Math.abs(item.x - x) / stepV,
+          stepY: Math.abs(item.y - y) / stepV,
+        }
+      } else {
+        colors[useIndex] = {
+          x,
+          y,
+          rx,
+          ry,
+          stepX: Math.abs(rx - x) / stepV,
+          stepY: Math.abs(ry - y) / stepV,
+        }
+      }
+      useIndex++
+    }
+    index++
+  }
+
+  if (useIndex < colors.length) {
+    colors.splice(useIndex, colors.length - useIndex)
+  }
+};
+
+ctx.fillStyle = '#ffffff';
+
 
 function render() {
 
   ctx.clearRect(0, 0, width, height);
   ctx.beginPath();
+
+  colors.forEach((v) => {
+    if (v.rx > v.x) {
+      v.rx -= v.stepX;
+      if (v.rx < v.x) {
+        v.rx = v.x
+      }
+    } else if (v.rx < v.x) {
+      v.rx += v.stepX;
+      if (v.rx > v.x) {
+        v.rx = v.x
+      }
+    }
+
+    if (v.ry > v.y) {
+      v.ry -= v.stepY;
+      if (v.ry < v.y) {
+        v.ry = v.y
+      }
+    } else if (v.ry < v.y) {
+      v.ry += v.stepY;
+      if (v.ry > v.y) {
+        v.ry = v.y
+      }
+    }
+
+    ctx.rect(v.rx, v.ry, 3, 3)
+  })
   
   snows.forEach(item => {
     item.y = item.y > height ? 0 : (item.y + item.speed);
@@ -48,5 +134,27 @@ function render() {
 
 render();
 
+const texts = '早发白帝城-李白，朝辞白帝彩云间，千里江陵一日还，两岸怨声啼不住，轻舟已过万重山'.split('，')
+
+function awaitDrawText (text, fontSize, stepV, index) {
+  return new Promise((resolve) => {
+    colors.sort(() => Math.random() - 0.5)
+    drawText(text, fontSize, stepV)
+    setTimeout(() => {
+      resolve();
+      if (index + 1 === texts.length) {
+        run()
+      }
+    }, 2000 + (stepV > 40 ? 1000 : 0))
+  })
+};
+
+async function run() {
+  for (let index = 0; index < texts.length; index++) {
+    await awaitDrawText(texts[index], 150, index === 0 ? 100 : 40, index)
+  }
+}
+
+run()
 </script>
 </html>
